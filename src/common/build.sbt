@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   gtGeotools exclude ("com.google.protobuf", "protobuf-java"),
   "com.github.seratch" %% "awscala" % "0.6.1",
   "org.scalaj" %% "scalaj-http" % "2.3.0",
-  sparkHive % "provided",
+  sparkHive,
   sparkJts,
   gtS3 exclude ("com.google.protobuf", "protobuf-java") exclude ("com.amazonaws", "aws-java-sdk-s3"),
   gtSpark exclude ("com.google.protobuf", "protobuf-java"),
