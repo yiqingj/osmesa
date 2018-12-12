@@ -69,6 +69,52 @@ object ProcessOSM {
 
   val VersionedElementEncoder: Encoder[Row] = RowEncoder(VersionedElementSchema)
 
+  val NodeGeomSchema = StructType(
+    StructField("_type", ByteType, nullable = false) ::
+      StructField("id", LongType, nullable = false) ::
+      StructField("tags",
+        MapType(StringType, StringType, valueContainsNull = false),
+        nullable = false) ::
+      StructField("changeset", LongType, nullable = false) ::
+      StructField("version", IntegerType, nullable = false) ::
+      StructField("visible", BooleanType, nullable = false) ::
+      StructField("updated", TimestampType, nullable = false) ::
+      StructField("validUntil", TimestampType) ::
+      StructField("geom", GeometryUDT) ::
+      Nil)
+
+  val WayGeomSchema = StructType(
+    StructField("_type", ByteType, nullable = false) ::
+      StructField("id", LongType, nullable = false) ::
+      StructField("tags",
+        MapType(StringType, StringType, valueContainsNull = false),
+        nullable = false) ::
+      StructField("changeset", LongType, nullable = false) ::
+      StructField("version", IntegerType, nullable = false) ::
+      StructField("visible", BooleanType, nullable = false) ::
+      StructField("updated", TimestampType, nullable = false) ::
+      StructField("validUntil", TimestampType) ::
+      StructField("geom", GeometryUDT) ::
+      StructField("minorVersion", IntegerType, nullable = false) ::
+      StructField("geometryChanged", BooleanType, nullable = false) ::
+      Nil)
+
+  val RelationGeomSchema = StructType(
+    StructField("_type", ByteType, nullable = false) ::
+      StructField("id", LongType, nullable = false) ::
+      StructField("tags",
+        MapType(StringType, StringType, valueContainsNull = false),
+        nullable = false) ::
+      StructField("changeset", LongType, nullable = false) ::
+      StructField("version", IntegerType, nullable = false) ::
+      StructField("visible", BooleanType, nullable = false) ::
+      StructField("updated", TimestampType, nullable = false) ::
+      StructField("validUntil", TimestampType) ::
+      StructField("geom", GeometryUDT) ::
+      StructField("minorVersion", IntegerType, nullable = false) ::
+      Nil)
+
+
   /**
     * Snapshot pre-processed elements.
     *

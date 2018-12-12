@@ -13,7 +13,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
 import geotrellis.vector.io._
 import osmesa.common.ProcessOSM
-
+import org.locationtech.geomesa.spark.jts._
+import com.vividsolutions.jts.{geom => jts}
 import scala.collection.mutable.ArrayBuffer
 
 
@@ -65,16 +66,18 @@ object MakeTiles extends CommandApp(
         /* Silence the damn INFO logger */
         Logger.getRootLogger.setLevel(Level.WARN)
 
+        ss.withJTS
+
         val geoms = changesets match {
           case Some(c) => ProcessOSM.addUserMetadata(ss.read.orc(orc), ss.read.orc(c))
-          case None => ss.read.orc(orc)
+          case None => ss.read.schema(ProcessOSM.RelationGeomSchema).orc(orc)
         }
 
         val features: RDD[GenerateVT.VTF[Geometry]] = geoms
           .rdd
           .flatMap { row =>
             val id = row.getAs[Long]("id")
-            val geom = row.getAs[scala.Array[Byte]]("geom")
+            val geom = row.getAs[jts.Geometry]("geom")
             val tags = row.getAs[Map[String, String]]("tags")
             val changeset = row.getAs[Long]("changeset")
             val updated = row.getAs[java.sql.Timestamp]("updated")
@@ -92,7 +95,7 @@ object MakeTiles extends CommandApp(
             }
 
             // check validity of reprojected geometry
-            Option(geom).map(_.readWKB.reproject(LatLng, WebMercator)) match {
+            Option(geom).map(Geometry(_).reproject(LatLng, WebMercator)) match {
               case Some(g) if g.isValid =>
                 ArrayBuffer(Feature(
                   g,
@@ -114,6 +117,8 @@ object MakeTiles extends CommandApp(
             }
           }
 
+        println("saving...")
+
         val save = if (tapalcatl) {
           GenerateVT.saveInZips _
         } else {
@@ -127,7 +132,8 @@ object MakeTiles extends CommandApp(
           val LayoutLevel(zoom, layout) = layoutLevel
 
           // TODO allow buffer to be set per layer
-          save(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom, bucket, prefix)
+//          save(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom, bucket, prefix)
+          GenerateVT.saveHadoop(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom,s"file:///Users/yiqing_jin/data_dir/tiles")
         }
 
         val maxLayoutLevel = layoutScheme.levelForZoom(zoom)
