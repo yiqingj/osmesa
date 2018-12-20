@@ -284,7 +284,9 @@ object ProcessOSM {
     * @return Nodes as Point geometries
     */
   def constructPointGeometries(nodes: DataFrame): DataFrame = {
-    import nodes.sparkSession.implicits._
+    implicit val ss: SparkSession = nodes.sparkSession
+    import ss.implicits._
+    ss.withJTS
 
     val ns = preprocessNodes(nodes)
       .where(size('tags) > 0)

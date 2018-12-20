@@ -2,6 +2,7 @@ import sbt._
 
 object Dependencies {
   val decline        = "com.monovore"                %% "decline"                     % Version.decline
+  val sparkCore      = "org.apache.spark"            %% "spark-core"                  % Version.spark
   val sparkHive      = "org.apache.spark"            %% "spark-hive"                  % Version.spark
   val sparkStreaming = "org.apache.spark"            %% "spark-streaming"             % Version.spark
   val sparkJts       = "org.locationtech.geomesa"    %% "geomesa-spark-jts"           % Version.geomesa

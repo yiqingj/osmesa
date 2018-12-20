@@ -5,6 +5,7 @@ import java.io.File
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import org.apache.spark.sql._
 import org.apache.spark.sql.types.StructType
+import org.locationtech.geomesa.spark.jts._
 
 
 trait Caching {
@@ -41,7 +42,7 @@ class FsCaching(cacheDir: String) extends Caching {
     if (!f(filename).exists()) {
       sparkjob.repartition(cachePartitions.getOrElse(1)).write.mode(SaveMode.Overwrite).format("orc").save(f(filename).toURI.toString)
     }
-
+    ss.withJTS
     try {
       ss.read.schema(schema).orc(f(filename).toURI.toString)
     } catch {
