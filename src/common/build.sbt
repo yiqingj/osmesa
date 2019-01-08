@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
   circeJava8,
   circeYaml,
   "com.softwaremill.macmemo" %% "macros" % "0.4",
-  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.340" % "provided"
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.340" % Provided
 )
 
 Test / fork := true
