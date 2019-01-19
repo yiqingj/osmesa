@@ -6,7 +6,6 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.sources.v2.reader.DataReader
-import org.apache.spark.sql.types.StructType
 
 import scala.collection.parallel.ForkJoinTaskSupport
 import scala.concurrent.forkjoin.ForkJoinPool
@@ -16,12 +15,12 @@ abstract class ReplicationStreamBatchReader[T <: Product: TypeTag](baseURI: URI,
                                                                    sequences: Seq[Int])
     extends DataReader[Row]
     with Logging {
-  private lazy val rowEncoder = RowEncoder(schema).resolveAndBind()
+  org.apache.spark.sql.jts.registerTypes()
+  private lazy val rowEncoder = RowEncoder(encoder.schema).resolveAndBind()
   protected var index: Int = -1
   protected var items: Vector[T] = _
   val Concurrency: Int = 8
-  protected val schema: StructType
-  private val encoder = ExpressionEncoder[T]
+  private lazy val encoder = ExpressionEncoder[T]
 
   override def next(): Boolean = {
     index += 1

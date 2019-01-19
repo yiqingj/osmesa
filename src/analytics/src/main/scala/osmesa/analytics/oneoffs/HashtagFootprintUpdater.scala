@@ -170,10 +170,10 @@ object HashtagFootprintUpdater
               .options(changesetOptions)
               .load
               // changesets can remain open for 24 hours; buy some extra time
-              // TODO can projecting into the future (created_at + 24 hours) and coalescing closed_at reduce the number
+              // TODO can projecting into the future (createdAt + 24 hours) and coalescing closedAt reduce the number
               // of changesets being tracked?
-              .withWatermark("created_at", "25 hours")
-              .withColumn("hashtag", explode(hashtags('tags)))
+              .withWatermark("createdAt", "25 hours")
+              .withColumn("hashtag", explode(hashtags('tags.getField("comment"))))
               .select('sequence, 'id as 'changeset, 'hashtag)
 
             val changedNodes = changes

@@ -2,11 +2,12 @@ package osmesa.common.model
 
 import java.sql.Timestamp
 
-import org.apache.spark.sql.types._
 import org.joda.time.DateTime
-import osmesa.common.model.Actions.Action
+import org.xml.sax
+import org.xml.sax.helpers.DefaultHandler
 
-import scala.xml.Node
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 // TODO at some point user metadata (changeset, uid, user, timestamp?) should become options, as they may not be
 // available
@@ -26,89 +27,80 @@ case class Change(id: Long,
                   sequence: Int)
 
 object Change {
-  val Schema = StructType(
-    StructField("id", LongType) ::
-      StructField("type", StringType) ::
-      StructField(
-      "tags",
-      MapType(StringType, StringType, valueContainsNull = true)
-    ) ::
-      StructField("lat", DoubleType) ::
-      StructField("lon", DoubleType) ::
-      StructField(
-      "nds",
-      DataTypes.createArrayType(StructType(StructField("ref", LongType) :: Nil))
-    ) ::
-      StructField(
-      "members",
-      DataTypes.createArrayType(
-        StructType(
-          StructField("type", StringType) ::
-            StructField("ref", LongType) ::
-            StructField("role", StringType) ::
-            Nil
-        )
-      )
-    ) ::
-      StructField("changeset", LongType) ::
-      StructField("timestamp", TimestampType) ::
-      StructField("uid", LongType) ::
-      StructField("user", StringType) ::
-      StructField("version", LongType) ::
-      StructField("visible", BooleanType) ::
-      StructField("sequence", IntegerType) ::
-      Nil
-  )
-
   implicit def stringToTimestamp(s: String): Timestamp =
     Timestamp.from(DateTime.parse(s).toDate.toInstant)
 
-  def fromXML(node: Node, action: Action, sequence: Int): Change = {
-    val `type` = node.label
-    val id = (node \@ "id").toLong
-    val tags =
-      (node \ "tag").map(tag => (tag \@ "k", tag \@ "v")).toMap
-    val lat = node \@ "lat" match {
-      case "" => None
-      case v  => Some(v.toDouble)
-    }
-    val lon = node \@ "lon" match {
-      case "" => None
-      case v  => Some(v.toDouble)
-    }
-    val nds = `type` match {
-      case "way" =>
-      Some((node \ "nd").map(Nd.fromXML))
-      case _ => None
-    }
-    val members = `type` match {
-      case "relation" =>
-        Some((node \ "member").map(Member.fromXML))
-      case _ => None
-    }
-    val changeset = (node \@ "changeset").toLong
-    val timestamp = node \@ "timestamp"
-    val uid = (node \@ "uid").toLong
-    val user = node \@ "user"
-    val version = (node \@ "version").toLong
-    val visible = action match {
-      case Actions.Create | Actions.Modify => true
-      case Actions.Delete                  => false
+  class ChangeHandler(sequence: Int) extends DefaultHandler {
+    final val ActionLabels: Set[String] = Set("create", "delete", "modify")
+    final val ElementLabels: Set[String] = Set("node", "way", "relation")
+
+    private val changeSeq: ListBuffer[Change] = ListBuffer.empty
+    private val tags: mutable.Map[String, String] = mutable.Map.empty
+    private val nds: ListBuffer[Nd] = ListBuffer.empty
+    private val members: ListBuffer[Member] = ListBuffer.empty
+    private var action: Actions.Action = _
+    private var attrs: Map[String, String] = _
+
+    def changes: Seq[Change] = changeSeq
+
+    override def startElement(uri: String,
+                              localName: String,
+                              qName: String,
+                              attributes: sax.Attributes): Unit = {
+      val attrs =
+        (for {
+          i <- Range(0, attributes.getLength)
+        } yield attributes.getQName(i) -> attributes.getValue(i)).toMap
+
+      qName.toLowerCase match {
+        case label if ActionLabels.contains(label) =>
+          action = Actions.fromString(qName)
+
+        case label if ElementLabels.contains(label) =>
+          reset()
+
+          this.attrs = attrs
+
+        case "tag" =>
+          tags.update(attrs("k"), attrs("v"))
+
+        case "nd" =>
+          nds.append(Nd(attrs("ref").toLong))
+
+        case "member" =>
+          members.append(
+            Member(Member.typeFromString(attrs("type")), attrs("ref").toLong, attrs("role")))
+
+        case _ => () // no-op
+      }
     }
 
-    Change(id,
-           `type`,
-           tags,
-           lat,
-           lon,
-           nds,
-           members,
-           changeset,
-           timestamp,
-           uid,
-           user,
-           version,
-           visible,
-           sequence)
+    def reset(): Unit = {
+      tags.clear()
+      nds.clear()
+      members.clear()
+    }
+
+    override def endElement(uri: String, localName: String, qName: String): Unit = {
+      if (ElementLabels.contains(qName.toLowerCase)) {
+        changeSeq.append(
+          Change(
+            attrs("id").toLong,
+            qName,
+            tags.toMap,
+            attrs.get("lat").map(_.toDouble),
+            attrs.get("lon").map(_.toDouble),
+            Option(nds).filter(_.nonEmpty),
+            Option(members).filter(_.nonEmpty).map(_.toSeq),
+            attrs.get("changeset").map(_.toLong).getOrElse(-1L),
+            stringToTimestamp(attrs.getOrElse("timestamp", "1970-01-01T00:00:00Z")),
+            attrs.get("uid").map(_.toLong).getOrElse(-1L),
+            attrs.getOrElse("user", ""),
+            attrs.get("version").map(_.toLong).getOrElse(-1L),
+            action != Actions.Delete,
+            sequence
+          ))
+      }
+    }
   }
 }

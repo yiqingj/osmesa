@@ -79,12 +79,12 @@ object ChangesetStreamProcessor extends CommandApp(
 
         val changesetProcessor = changesets
           .select('id,
-                  'created_at,
-                  'closed_at,
+                  'createdAt,
+                  'closedAt,
                   'user,
                   'uid,
                   'tags.getField("created_by") as 'editor,
-                  hashtags('tags) as 'hashtags)
+                  hashtags('tags.getField("comment")) as 'hashtags)
           .writeStream
           .queryName("update changeset metadata")
           .foreach(new ForeachWriter[Row] {
@@ -193,8 +193,8 @@ object ChangesetStreamProcessor extends CommandApp(
 
             def process(row: Row): Unit = {
               val id = row.getAs[Long]("id")
-              val createdAt = row.getAs[Timestamp]("created_at")
-              val closedAt = row.getAs[Timestamp]("closed_at")
+              val createdAt = row.getAs[Timestamp]("createdAt")
+              val closedAt = row.getAs[Timestamp]("closedAt")
               val user = row.getAs[String]("user")
               val uid = row.getAs[Long]("uid")
               val editor = row.getAs[String]("editor")
