@@ -64,7 +64,7 @@ object GenerateVT {
         byteStream.toByteArray
       }
       .saveToS3(
-        { sk: SpatialKey => s"s3://${bucket}/${prefix}/${zoom}/${sk.col}/${sk.row}.mvt" },
+        { sk: SpatialKey => s"file:///Users/yiqing_jin/data_dir/${bucket}/${prefix}/${zoom}/${sk.col}/${sk.row}.mvt" },
         putObjectModifier = { o =>
           val md = o.getMetadata
 

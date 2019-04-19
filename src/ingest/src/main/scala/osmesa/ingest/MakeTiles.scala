@@ -132,8 +132,8 @@ object MakeTiles extends CommandApp(
           val LayoutLevel(zoom, layout) = layoutLevel
 
           // TODO allow buffer to be set per layer
-//          save(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom, bucket, prefix)
-          GenerateVT.saveHadoop(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom,s"file:///Users/yiqing_jin/data_dir/tiles")
+          save(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom, bucket, prefix)
+//          GenerateVT.saveHadoop(GenerateVT.makeVectorTiles(keyedGeoms, layout, "all"), zoom,s"file:///Users/yiqing_jin/data_dir/tiles")
         }
 
         val maxLayoutLevel = layoutScheme.levelForZoom(zoom)
